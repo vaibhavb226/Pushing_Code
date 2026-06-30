@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sysco RFP AIQ — Solution Architecture</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #eef2f7;
+    padding: 30px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  h1 {
+    font-size: 20px;
+    font-weight: 800;
+    color: #1F3864;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+
+  .subtitle {
+    font-size: 12px;
+    color: #64748b;
+    margin-bottom: 24px;
+    letter-spacing: 0.3px;
+  }
+
+  /* ── Outer canvas ── */
+  .canvas {
+    position: relative;
+    width: 1380px;
+    height: 830px;
+    background: white;
+    border-radius: 18px;
+    box-shadow: 0 6px 32px rgba(0,0,0,0.13);
+    overflow: hidden;
+  }
+
+  /* ── SVG arrow layer ── */
+  .arrows {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 4;
+  }
+
+  /* ── Platform containers ── */
+  .platform {
+    position: absolute;
+    border-radius: 14px;
+    overflow: hidden;
+    z-index: 2;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  }
+
+  .platform-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 14px;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.9px;
+    color: white;
+    text-transform: uppercase;
+  }
+
+  .platform-body {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  /* ── White component cards ── */
+  .card {
+    background: white;
+    border-radius: 8px;
+    padding: 9px 12px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #1e293b;
+    border: 1.5px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+
+  .card-icon { font-size: 18px; flex-shrink: 0; }
+
+  .card-sub {
+    font-size: 10px;
+    color: #64748b;
+    font-weight: 400;
+    display: block;
+    margin-top: 1px;
+  }
+
+  .card-grid {
+    display: grid;
+    gap: 7px;
+  }
+
+  /* ── Section headers inside platforms ── */
+  .section-label {
+    font-size: 9.5px;
+    font-weight: 800;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid rgba(255,255,255,0.4);
+  }
+
+  /* ── Connector label pills ── */
+  .connector-pill {
+    position: absolute;
+    background: white;
+    border: 1.5px solid #94a3b8;
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 9.5px;
+    font-weight: 700;
+    color: #475569;
+    white-space: nowrap;
+    z-index: 6;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    text-align: center;
+  }
+
+  /* ── User badges (top) ── */
+  .user-badge {
+    position: absolute;
+    z-index: 6;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 16px;
+    border-radius: 30px;
+    font-size: 12px;
+    font-weight: 700;
+    color: white;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+  }
+
+  /* ── Colour themes ── */
+  /* Frontend — dark navy */
+  .p-frontend { border: 2.5px solid #243e74; background: #2e4f8a; }
+  .p-frontend .platform-title { background: #1F3864; }
+  .p-frontend .section-label { color: #93b4d4; border-color: rgba(147,180,212,0.3); }
+
+  /* Core platform — sky blue */
+  .p-core { border: 2.5px solid #2d8ecf; background: #dbeeff; }
+  .p-core .platform-title { background: #1a72b0; }
+  .p-core .section-label { color: #1a72b0; border-color: rgba(26,114,176,0.25); }
+
+  /* AI platform — EXL orange */
+  .p-ai { border: 2.5px solid #c0481c; background: #fde8dc; }
+  .p-ai .platform-title { background: #E05A2B; }
+  .p-ai .section-label { color: #9a3311; border-color: rgba(154,51,17,0.25); }
+
+  /* Email — forest green */
+  .p-email { border: 2.5px solid #2e7d32; background: #e6f4e7; }
+  .p-email .platform-title { background: #2e7d32; }
+  .p-email .section-label { color: #1b5e20; border-color: rgba(27,94,32,0.25); }
+
+  /* Data layer — deep purple */
+  .p-data { border: 2.5px solid #5b21b6; background: #ede9fe; }
+  .p-data .platform-title { background: #4c1d95; }
+  .p-data .section-label { color: #4c1d95; border-color: rgba(76,29,149,0.25); }
+
+  /* ── Card accent variants ── */
+  .card-ai    { border-color: #E05A2B; background: #fff7f3; }
+  .card-green { border-color: #16a34a; background: #f0fdf4; }
+  .card-blue  { border-color: #2563eb; background: #eff6ff; }
+  .card-purple{ border-color: #7c3aed; background: #faf5ff; }
+  .card-default { border-color: #e2e8f0; }
+
+  /* ── The inner gateway bar ── */
+  .gateway-bar {
+    background: #1a72b0;
+    border-radius: 8px;
+    padding: 7px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .gateway-badge {
+    margin-left: auto;
+    font-size: 9px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 4px;
+    padding: 2px 7px;
+    font-weight: 600;
+  }
+
+  /* ── Legend ── */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    margin-top: 18px;
+    justify-content: center;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11px;
+    color: #475569;
+  }
+  .legend-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+
+<h1>SYSCO RFP AIQ — SOLUTION ARCHITECTURE DIAGRAM</h1>
+<p class="subtitle">AI-Powered Procurement Platform &nbsp;|&nbsp; Sysco Corporation × EXL Service &nbsp;|&nbsp; June 2026 &nbsp;|&nbsp; CONFIDENTIAL</p>
+
+<div class="canvas">
+
+  <!-- ═══════════════════════════════════════════════
+       SVG ARROWS
+  ════════════════════════════════════════════════ -->
+  <svg class="arrows">
+    <defs>
+      <!-- Arrow heads -->
+      <marker id="arr-gray"   markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#94a3b8"/></marker>
+      <marker id="arr-orange" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#E05A2B"/></marker>
+      <marker id="arr-green"  markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#2e7d32"/></marker>
+      <marker id="arr-purple" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#7c3aed"/></marker>
+      <marker id="arr-blue"   markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#1a72b0"/></marker>
+      <marker id="arr-navy"   markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#1F3864"/></marker>
+    </defs>
+
+    <!-- COE Team ↓ Frontend -->
+    <line x1="130" y1="62" x2="115" y2="92" stroke="#1F3864" stroke-width="2.5" marker-end="url(#arr-navy)"/>
+
+    <!-- Suppliers → Core Platform (diagonal) -->
+    <line x1="1245" y1="62" x2="870" y2="95" stroke="#2e7d32" stroke-width="2.5" stroke-dasharray="7,4" marker-end="url(#arr-green)"/>
+
+    <!-- Frontend ↔ Core Platform (double arrow) -->
+    <line x1="218" y1="310" x2="242" y2="310" stroke="#1a72b0" stroke-width="2.5" marker-end="url(#arr-blue)"/>
+    <line x1="242" y1="325" x2="218" y2="325" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr-gray)"/>
+
+    <!-- Core Platform → AI Platform -->
+    <line x1="876" y1="215" x2="892" y2="215" stroke="#E05A2B" stroke-width="2.5" marker-end="url(#arr-orange)"/>
+
+    <!-- Core Platform → Email Platform -->
+    <line x1="876" y1="460" x2="892" y2="450" stroke="#2e7d32" stroke-width="2.5" marker-end="url(#arr-green)"/>
+
+    <!-- Email Poller → Email Platform (dashed background service) -->
+    <path d="M 760 555 Q 880 555 892 490" fill="none" stroke="#7c3aed" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#arr-purple)"/>
+
+    <!-- Core Platform ↓ Data Layer -->
+    <line x1="545" y1="650" x2="545" y2="672" stroke="#7c3aed" stroke-width="2.5" marker-end="url(#arr-purple)"/>
+    <line x1="730" y1="650" x2="730" y2="672" stroke="#7c3aed" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#arr-purple)"/>
+
+    <!-- AI Platform ↓ Data Layer -->
+    <line x1="1010" y1="650" x2="950" y2="672" stroke="#E05A2B" stroke-width="1.8" stroke-dasharray="5,3" marker-end="url(#arr-orange)"/>
+
+    <!-- Bidirectional tick on Frontend↔Core -->
+    <line x1="220" y1="295" x2="242" y2="295" stroke="#1a72b0" stroke-width="1.5" marker-end="url(#arr-blue)"/>
+  </svg>
+
+  <!-- ═══════════════════════════════════════════════
+       USER BADGES (top)
+  ════════════════════════════════════════════════ -->
+  <div class="user-badge" style="top:18px; left:28px; background:#1F3864;">
+    👤 Bid COE Team &nbsp;<span style="font-size:10px;font-weight:400;opacity:0.8;">Sysco Internal</span>
+  </div>
+  <div class="user-badge" style="top:18px; right:28px; background:#2e7d32;">
+    🏭 Suppliers &nbsp;<span style="font-size:10px;font-weight:400;opacity:0.8;">External Vendors</span>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       FRONTEND PLATFORM (left)
+  ════════════════════════════════════════════════ -->
+  <div class="platform p-frontend" style="top:90px; left:20px; width:200px; bottom:175px;">
+    <div class="platform-title">🖥️ &nbsp;PRESENTATION<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;LAYER</div>
+    <div class="platform-body">
+      <div class="section-label" style="color:#93b4d4; border-color:rgba(147,180,212,0.3);">React 18 + Vite · Port 5173</div>
+      <div class="card card-default">
+        <span class="card-icon">📋</span>
+        <div>Bid Queue<span class="card-sub">Dashboard · Filters</span></div>
+      </div>
+      <div class="card card-default">
+        <span class="card-icon">📁</span>
+        <div>Bid Detail<span class="card-sub">4-Tab View</span></div>
+      </div>
+      <div class="card card-ai">
+        <span class="card-icon">🤖</span>
+        <div>Upload RFP<span class="card-sub">BEX AI Parser</span></div>
+      </div>
+      <div class="card card-default">
+        <span class="card-icon">📂</span>
+        <div>Document Vault<span class="card-sub">File Repository</span></div>
+      </div>
+      <div class="card card-default">
+        <span class="card-icon">✉️</span>
+        <div>Email Repo<span class="card-sub">Thread View</span></div>
+      </div>
+      <div class="card card-green" style="margin-top:4px;">
+        <span class="card-icon">🌐</span>
+        <div>Supplier Portal<span class="card-sub" style="color:#166534;font-weight:700;">Public · No Login</span></div>
+      </div>
+
+      <div style="margin-top:auto; padding:6px 4px 0; border-top:1px solid rgba(255,255,255,0.15);">
+        <div style="font-size:9px;color:#93b4d4;font-weight:600;">Tailwind CSS · React Router v6</div>
+        <div style="font-size:9px;color:#93b4d4;">Dark/Light via ThemeContext</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       CORE PLATFORM (centre)
+  ════════════════════════════════════════════════ -->
+  <div class="platform p-core" style="top:90px; left:242px; width:632px; bottom:175px;">
+    <div class="platform-title" style="font-size:13px;">⚡ &nbsp;SYSCO RFP AIQ PLATFORM</div>
+
+    <div class="platform-body">
+      <!-- Gateway bar -->
+      <div class="gateway-bar">
+        🔀 &nbsp;API GATEWAY — FastAPI + Uvicorn &nbsp;[Port 3001]
+        <span class="gateway-badge">RequestID → APIKey → CORS Middleware</span>
+        <span class="gateway-badge">/api/* ≡ /api/v1/*</span>
+      </div>
+
+      <!-- Core Routers -->
+      <div style="background:rgba(255,255,255,0.55); border-radius:10px; padding:10px;">
+        <div class="section-label p-core" style="color:#1a72b0;">CORE API ROUTERS</div>
+        <div class="card-grid" style="grid-template-columns:1fr 1fr 1fr 1fr;">
+          <div class="card card-default" style="flex-direction:column;align-items:center;text-align:center;padding:9px 6px;">
+            <span style="font-size:22px;">📋</span>
+            <span style="font-size:11px;font-weight:700;">/api/bids</span>
+            <span style="font-size:9px;color:#64748b;">23 routes</span>
+          </div>
+          <div class="card card-default" style="flex-direction:column;align-items:center;text-align:center;padding:9px 6px;">
+            <span style="font-size:22px;">🤝</span>
+            <span style="font-size:11px;font-weight:700;">/api/suppliers</span>
+            <span style="font-size:9px;color:#64748b;">Auto-populate</span>
+          </div>
+          <div class="card card-default" style="flex-direction:column;align-items:center;text-align:center;padding:9px 6px;">
+            <span style="font-size:22px;">✉️</span>
+            <span style="font-size:11px;font-weight:700;">/api/emails</span>
+            <span style="font-size:9px;color:#64748b;">Thread log</span>
+          </div>
+          <div class="card card-default" style="flex-direction:column;align-items:center;text-align:center;padding:9px 6px;">
+            <span style="font-size:22px;">📂</span>
+            <span style="font-size:11px;font-weight:700;">/api/documents</span>
+            <span style="font-size:9px;color:#64748b;">Vault</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Routers -->
+      <div style="background:rgba(255,255,255,0.55); border-radius:10px; padding:10px;">
+        <div class="section-label" style="color:#c0481c;">AI-POWERED ROUTERS</div>
+        <div class="card-grid" style="grid-template-columns:1fr 1fr 1fr 1fr;">
+          <div class="card card-ai" style="flex-direction:column;align-items:center;text-align:center;padding:9px 6px;">
+            <span style="font-size:22px;">🤖</span>
+            <span style="font-size:11px;font-weight:700;">BEX AI</span>
+            <span style="font-size:9px;color:#c0481c;">RFP Parser</span>
+          </div>
+          <div class="card card-ai" style="flex-direction:column;align-items:center;text-align:center;padding:9px 6px;">
+            <span style="font-size:22px;">💰</span>
+            <span style="font-size:11px;font-weight:700;">Pricing AI</span>
+            <span style="font-size:9px;color:#c0481c;">OP7 Extract</span>
+          </div>
+          <div class="card card-ai" style="flex-direction:column;align-items:center;text-align:center;padding:9px 6px;">
+            <span style="font-size:22px;">📊</span>
+            <span style="font-size:11px;font-weight:700;">Response AI</span>
+            <span style="font-size:9px;color:#c0481c;">OP8 Score</span>
+          </div>
+          <div class="card card-ai" style="flex-direction:column;align-items:center;text-align:center;padding:9px 6px;">
+            <span style="font-size:22px;">💬</span>
+            <span style="font-size:11px;font-weight:700;">Q&A Chat</span>
+            <span style="font-size:9px;color:#c0481c;">Multi-turn</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Background Services + Portal -->
+      <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:9px;">
+        <div style="background:rgba(255,255,255,0.55); border-radius:10px; padding:10px;">
+          <div class="section-label" style="color:#5b21b6;">BACKGROUND SERVICES (asyncio Tasks)</div>
+          <div class="card-grid" style="grid-template-columns:1fr 1fr;">
+            <div class="card card-purple" style="flex-direction:column;align-items:center;text-align:center;padding:9px 6px;">
+              <span style="font-size:22px;">📬</span>
+              <span style="font-size:11px;font-weight:700;">Email Poller</span>
+              <span style="font-size:9px;color:#5b21b6;">Every 15 seconds</span>
+              <span style="font-size:9px;color:#64748b;">3-tier bid match</span>
+            </div>
+            <div class="card card-purple" style="flex-direction:column;align-items:center;text-align:center;padding:9px 6px;">
+              <span style="font-size:22px;">⏰</span>
+              <span style="font-size:11px;font-weight:700;">Auto-Reminder</span>
+              <span style="font-size:9px;color:#5b21b6;">Hourly · APScheduler</span>
+              <span style="font-size:9px;color:#64748b;">Min 3-day gap</span>
+            </div>
+          </div>
+        </div>
+        <div style="background:rgba(255,255,255,0.55); border-radius:10px; padding:10px;">
+          <div class="section-label" style="color:#166534;">SUPPLIER PORTAL</div>
+          <div class="card card-green" style="flex-direction:column;align-items:center;text-align:center;padding:10px;">
+            <span style="font-size:24px;">🌐</span>
+            <span style="font-size:11px;font-weight:700;">/api/submit/:bidId</span>
+            <span style="font-size:9.5px;color:#166534;font-weight:700; margin-top:2px;">⚠️ PUBLIC — No Auth</span>
+            <span style="font-size:9px;color:#64748b;">Quote upload + submit</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       AI / LLM PLATFORM (right top)
+  ════════════════════════════════════════════════ -->
+  <div class="platform p-ai" style="top:90px; right:20px; width:248px; height:310px;">
+    <div class="platform-title">🧠 &nbsp;AI / LLM PLATFORM</div>
+    <div class="platform-body">
+      <div class="card card-green">
+        <span class="card-icon">✅</span>
+        <div>Anthropic Claude
+          <span class="card-sub" style="color:#166534;font-weight:700;">Sonnet 4.0 · DEFAULT</span>
+        </div>
+      </div>
+      <div class="card card-default">
+        <span class="card-icon">🔵</span>
+        <div>OpenAI
+          <span class="card-sub">GPT-4o</span>
+        </div>
+      </div>
+      <div class="card card-default">
+        <span class="card-icon">🟡</span>
+        <div>Google Vertex AI
+          <span class="card-sub">Gemini 2.5 Flash · IAM/ADC</span>
+        </div>
+      </div>
+      <div style="margin-top:4px; padding:7px 8px; background:rgba(224,90,43,0.08); border-radius:7px; border:1px dashed #E05A2B;">
+        <div style="font-size:9.5px; color:#9a3311; font-weight:700;">LangChain Abstraction Layer</div>
+        <div style="font-size:9px; color:#64748b; margin-top:2px;">Switch via <code style="background:#fde8dc;padding:1px 4px;border-radius:3px;">LLM_PROVIDER</code> in .env</div>
+        <div style="font-size:9px; color:#64748b;">No code changes required</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       EMAIL PLATFORM (right bottom)
+  ════════════════════════════════════════════════ -->
+  <div class="platform p-email" style="top:420px; right:20px; width:248px; height:235px;">
+    <div class="platform-title">✉️ &nbsp;EMAIL PLATFORM</div>
+    <div class="platform-body">
+      <div class="card card-default">
+        <span class="card-icon">📧</span>
+        <div>Gmail
+          <span class="card-sub">SMTP port 587 · IMAP port 993</span>
+          <span class="card-sub">App Password auth</span>
+        </div>
+      </div>
+      <div class="card card-default">
+        <span class="card-icon">🏢</span>
+        <div>Microsoft 365
+          <span class="card-sub">Graph API · MSAL OAuth2</span>
+          <span class="card-sub">Mail.Send + Mail.Read</span>
+        </div>
+      </div>
+      <div style="margin-top:4px; padding:7px 8px; background:rgba(46,125,50,0.08); border-radius:7px; border:1px dashed #2e7d32;">
+        <div style="font-size:9px; color:#1b5e20; font-weight:700;">Switch via <code style="background:#e6f4e7;padding:1px 4px;border-radius:3px;">EMAIL_PROVIDER</code> in .env</div>
+        <div style="font-size:9px; color:#64748b; margin-top:2px;">Same interface: send · poll · mark-read</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       DATA LAYER (bottom bus)
+  ════════════════════════════════════════════════ -->
+  <div class="platform p-data" style="bottom:20px; left:20px; right:20px; height:148px;">
+    <div class="platform-title" style="font-size:13px;">
+      🗄️ &nbsp;DATA LAYER — Pluggable Storage &nbsp;[DB_BACKEND env var]
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr 1fr; gap:10px; padding:10px 12px 12px;">
+      <div class="card card-green" style="flex-direction:column;align-items:center;text-align:center;padding:8px;">
+        <span style="font-size:26px;">📄</span>
+        <span style="font-size:11.5px;font-weight:700;">JSON Files</span>
+        <span style="font-size:9.5px;color:#166534;font-weight:700;">✅ DEFAULT</span>
+        <span style="font-size:9px;color:#64748b;">9 data files · asyncio.Lock</span>
+      </div>
+      <div class="card card-default" style="flex-direction:column;align-items:center;text-align:center;padding:8px;">
+        <span style="font-size:26px;">🪶</span>
+        <span style="font-size:11.5px;font-weight:700;">SQLite</span>
+        <span style="font-size:9px;color:#64748b;">aiosqlite</span>
+        <span style="font-size:9px;color:#64748b;">SQLAlchemy ORM</span>
+      </div>
+      <div class="card card-blue" style="flex-direction:column;align-items:center;text-align:center;padding:8px;">
+        <span style="font-size:26px;">🐘</span>
+        <span style="font-size:11.5px;font-weight:700;">PostgreSQL</span>
+        <span style="font-size:9.5px;color:#1d4ed8;font-weight:700;">🏭 PRODUCTION</span>
+        <span style="font-size:9px;color:#64748b;">asyncpg · Alembic migrations</span>
+      </div>
+      <div class="card card-default" style="flex-direction:column;align-items:center;text-align:center;padding:8px;">
+        <span style="font-size:26px;">📁</span>
+        <span style="font-size:11.5px;font-weight:700;">File Storage</span>
+        <span style="font-size:9px;color:#64748b;">uploads/ directory</span>
+        <span style="font-size:9px;color:#64748b;">PDFs · Excel · Quotes</span>
+      </div>
+      <div class="card" style="flex-direction:column;align-items:center;text-align:center;padding:8px; border-color:#0369a1; background:#f0f9ff;">
+        <span style="font-size:26px;">🐳</span>
+        <span style="font-size:11.5px;font-weight:700;">Docker Deploy</span>
+        <span style="font-size:9.5px;color:#0369a1;font-weight:700;">Compose + Build</span>
+        <span style="font-size:9px;color:#64748b;">python:3.12-slim · Non-root</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       CONNECTOR PILLS
+  ════════════════════════════════════════════════ -->
+  <div class="connector-pill" style="top:306px; left:218px; border-color:#1a72b0; color:#1a72b0;">
+    REST / HTTP<br>Vite Proxy
+  </div>
+  <div class="connector-pill" style="top:205px; right:255px; border-color:#E05A2B; color:#E05A2B;">
+    AI Calls<br>LangChain
+  </div>
+  <div class="connector-pill" style="top:448px; right:255px; border-color:#2e7d32; color:#2e7d32;">
+    SMTP / IMAP<br>Graph API
+  </div>
+  <div class="connector-pill" style="bottom:155px; left:488px; border-color:#7c3aed; color:#7c3aed;">
+    Async R/W<br>per-file Lock
+  </div>
+  <div class="connector-pill" style="top:52px; right:275px; border-color:#2e7d32; color:#2e7d32;">
+    Public URL<br>/submit/:bidId
+  </div>
+  <div class="connector-pill" style="bottom:155px; left:700px; border-color:#7c3aed; color:#7c3aed; font-size:9px;">
+    Backfill Tasks
+  </div>
+  <div class="connector-pill" style="top:560px; right:248px; border-color:#7c3aed; color:#7c3aed; font-size:9px;">
+    Poll every 15s
+  </div>
+
+</div><!-- /canvas -->
+
+<!-- ═══════════════════════════════════════════════
+     LEGEND
+════════════════════════════════════════════════ -->
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#E05A2B;"></div>AI-Powered Routes</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#16a34a;"></div>Public / Supplier-facing</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#7c3aed;"></div>Background Services</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#2563eb;"></div>Production DB</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#1a72b0;"></div>Internal Authenticated</div>
+  <div class="legend-item" style="color:#94a3b8;">──── Solid: Primary data flow &nbsp;│&nbsp; - - - Dashed: Optional / Config-driven</div>
+</div>
+
+</body>
+</html>
