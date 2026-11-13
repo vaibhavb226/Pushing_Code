@@ -1,0 +1,766 @@
+
+<title>Polling vs Webhooks — Sysco RFP AIQ</title>
+<style>
+  :root {
+    --bg:        #F7F6F3;
+    --surface:   #FFFFFF;
+    --border:    #E2E0DA;
+    --navy:      #0D1B2A;
+    --navy-mid:  #1E3254;
+    --slate:     #5C6B7F;
+    --orange:    #E05A2B;
+    --orange-lt: #FDF0EB;
+    --green:     #0F7A55;
+    --green-lt:  #E6F5F0;
+    --amber:     #92600A;
+    --amber-lt:  #FEF3E2;
+    --blue:      #1A4A8A;
+    --blue-lt:   #EBF1FA;
+    --code-bg:   #F0EFEc;
+    --code-fg:   #1E3254;
+    --text:      #1A1A1A;
+    --text-2:    #3D3D3D;
+    --text-3:    #5C6B7F;
+    --shadow:    0 1px 3px rgba(13,27,42,.08), 0 4px 16px rgba(13,27,42,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:        #0D1B2A;
+      --surface:   #152033;
+      --border:    #253348;
+      --navy:      #E8EDF3;
+      --navy-mid:  #B8C9DE;
+      --slate:     #8FA3BC;
+      --orange:    #F07548;
+      --orange-lt: #2A1810;
+      --green:     #34D399;
+      --green-lt:  #0D2D22;
+      --amber:     #FBBf24;
+      --amber-lt:  #2D2008;
+      --blue:      #60A5FA;
+      --blue-lt:   #0F2040;
+      --code-bg:   #0A1520;
+      --code-fg:   #93C5FD;
+      --text:      #EEF2F7;
+      --text-2:    #C8D4E3;
+      --text-3:    #8FA3BC;
+      --shadow:    0 1px 3px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.2);
+    }
+  }
+  :root[data-theme="light"] {
+    --bg:#F7F6F3;--surface:#FFFFFF;--border:#E2E0DA;--navy:#0D1B2A;--navy-mid:#1E3254;
+    --slate:#5C6B7F;--orange:#E05A2B;--orange-lt:#FDF0EB;--green:#0F7A55;--green-lt:#E6F5F0;
+    --amber:#92600A;--amber-lt:#FEF3E2;--blue:#1A4A8A;--blue-lt:#EBF1FA;--code-bg:#F0EFEc;
+    --code-fg:#1E3254;--text:#1A1A1A;--text-2:#3D3D3D;--text-3:#5C6B7F;
+    --shadow:0 1px 3px rgba(13,27,42,.08),0 4px 16px rgba(13,27,42,.05);
+  }
+  :root[data-theme="dark"] {
+    --bg:#0D1B2A;--surface:#152033;--border:#253348;--navy:#E8EDF3;--navy-mid:#B8C9DE;
+    --slate:#8FA3BC;--orange:#F07548;--orange-lt:#2A1810;--green:#34D399;--green-lt:#0D2D22;
+    --amber:#FBBf24;--amber-lt:#2D2008;--blue:#60A5FA;--blue-lt:#0F2040;--code-bg:#0A1520;
+    --code-fg:#93C5FD;--text:#EEF2F7;--text-2:#C8D4E3;--text-3:#8FA3BC;
+    --shadow:0 1px 3px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.2);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    padding: 48px 20px 80px;
+  }
+
+  .doc {
+    max-width: 860px;
+    margin: 0 auto;
+  }
+
+  /* ── Header ── */
+  .doc-header {
+    border-bottom: 2px solid var(--orange);
+    padding-bottom: 28px;
+    margin-bottom: 48px;
+  }
+  .doc-eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--orange);
+    margin-bottom: 10px;
+  }
+  h1 {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--navy);
+    line-height: 1.2;
+    text-wrap: balance;
+    margin-bottom: 10px;
+  }
+  .doc-meta {
+    font-size: 13px;
+    color: var(--text-3);
+  }
+
+  /* ── Section headings ── */
+  h2 {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--navy);
+    margin: 48px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  h3 {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--slate);
+    margin: 28px 0 10px;
+  }
+
+  p { color: var(--text-2); margin-bottom: 14px; }
+  p:last-child { margin-bottom: 0; }
+
+  /* ── Current flow box ── */
+  .flow-box {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--orange);
+    border-radius: 6px;
+    padding: 18px 20px;
+    font-family: 'Cascadia Code','Fira Code','Consolas',monospace;
+    font-size: 13px;
+    color: var(--code-fg);
+    line-height: 1.8;
+    margin: 16px 0 24px;
+    overflow-x: auto;
+  }
+
+  /* ── Comparison cards ── */
+  .compare-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 20px 0 32px;
+  }
+  @media (max-width: 620px) { .compare-grid { grid-template-columns: 1fr; } }
+
+  .compare-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .compare-card-head {
+    padding: 14px 18px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .compare-card-head.polling  { background: var(--blue-lt);  color: var(--blue);   border-bottom: 1px solid var(--border); }
+  .compare-card-head.webhooks { background: var(--orange-lt); color: var(--orange); border-bottom: 1px solid var(--border); }
+  .compare-card-body { padding: 16px 18px; }
+
+  /* ── Pros / Cons rows ── */
+  .item-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .item-list li {
+    display: flex;
+    gap: 10px;
+    font-size: 14px;
+    color: var(--text-2);
+    line-height: 1.5;
+  }
+  .item-list li .chip {
+    flex-shrink: 0;
+    margin-top: 2px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    padding: 2px 7px;
+    border-radius: 3px;
+    text-transform: uppercase;
+  }
+  .chip.pro  { background: var(--green-lt); color: var(--green); }
+  .chip.con  { background: var(--amber-lt); color: var(--amber); }
+
+  /* ── Verdict banner ── */
+  .verdict {
+    background: var(--navy-mid);
+    color: #FFFFFF;
+    border-radius: 8px;
+    padding: 24px 28px;
+    margin: 32px 0;
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+  .verdict-icon {
+    font-size: 28px;
+    flex-shrink: 0;
+    line-height: 1;
+    margin-top: 2px;
+  }
+  .verdict h3 {
+    color: var(--orange);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    font-size: 11px;
+    margin: 0 0 6px;
+  }
+  .verdict p {
+    color: rgba(255,255,255,.85);
+    font-size: 14px;
+    margin: 0;
+    line-height: 1.6;
+  }
+
+  /* ── Scenario table ── */
+  .table-wrap { overflow-x: auto; margin: 16px 0 32px; border-radius: 8px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  thead th {
+    background: var(--surface);
+    color: var(--text-3);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: 10px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  tbody tr { border-bottom: 1px solid var(--border); }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:nth-child(even) { background: var(--bg); }
+  tbody tr:nth-child(odd)  { background: var(--surface); }
+  td { padding: 10px 16px; color: var(--text-2); vertical-align: top; }
+  td:first-child { font-weight: 500; color: var(--text); }
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+  .badge.poll { background: var(--blue-lt);   color: var(--blue);   }
+  .badge.hook { background: var(--orange-lt); color: var(--orange); }
+  .badge.free { background: var(--green-lt);  color: var(--green);  }
+  .badge.paid { background: var(--amber-lt);  color: var(--amber);  }
+
+  /* ── File change table ── */
+  .file-table-wrap { overflow-x: auto; margin: 16px 0; border-radius: 8px; border: 1px solid var(--border); }
+  .file-row { display: grid; grid-template-columns: 220px 110px 1fr; border-bottom: 1px solid var(--border); }
+  .file-row:last-child { border-bottom: none; }
+  .file-row.head { background: var(--surface); }
+  .file-row.head span {
+    font-size: 11px; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--text-3);
+    padding: 10px 16px; border-bottom: 1px solid var(--border);
+  }
+  .file-row:nth-child(even) .fc { background: var(--bg); }
+  .file-row:nth-child(odd)  .fc { background: var(--surface); }
+  .fc { padding: 11px 16px; font-size: 13px; color: var(--text-2); }
+  .fc.name { font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 12px; color: var(--orange); font-weight: 600; }
+  .fc-badge {
+    font-size: 10px; font-weight: 700; letter-spacing: .05em;
+    text-transform: uppercase; padding: 2px 7px; border-radius: 3px;
+    white-space: nowrap; display: inline-block;
+  }
+  .fc-badge.new    { background: var(--green-lt); color: var(--green); }
+  .fc-badge.modify { background: var(--blue-lt);  color: var(--blue);  }
+  .fc-badge.add    { background: var(--amber-lt); color: var(--amber); }
+
+  /* ── Architecture diagrams ── */
+  .arch-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0 32px; }
+  @media (max-width: 620px) { .arch-wrap { grid-template-columns: 1fr; } }
+
+  .arch-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .arch-head {
+    padding: 12px 16px;
+    font-size: 12px; font-weight: 700;
+    letter-spacing: .06em; text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+  .arch-head.current  { background: var(--blue-lt);  color: var(--blue);   }
+  .arch-head.proposed { background: var(--orange-lt); color: var(--orange); }
+  .arch-body {
+    padding: 16px;
+    font-family: 'Cascadia Code','Fira Code','Consolas',monospace;
+    font-size: 12px;
+    color: var(--code-fg);
+    line-height: 1.9;
+    background: var(--code-bg);
+  }
+  .arch-arrow { color: var(--orange); font-weight: 700; }
+  .arch-dim   { color: var(--text-3); }
+
+  /* ── Decision flowchart ── */
+  .flow {
+    margin: 20px 0 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+  }
+  .flow-node {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    box-shadow: var(--shadow);
+    position: relative;
+  }
+  .flow-node.question { border-color: var(--blue); color: var(--blue); background: var(--blue-lt); }
+  .flow-node.yes { border-color: var(--green); color: var(--green); background: var(--green-lt); }
+  .flow-node.no  { border-color: var(--amber); color: var(--amber); background: var(--amber-lt); }
+
+  .flow-connector {
+    display: flex; align-items: center; gap: 8px;
+    padding: 4px 0 4px 24px;
+    font-size: 12px; font-weight: 700;
+    letter-spacing: .06em; text-transform: uppercase;
+  }
+  .flow-connector.yes-path { color: var(--green); }
+  .flow-connector.no-path  { color: var(--amber); }
+  .vline {
+    width: 2px; height: 20px; margin-left: 30px;
+    background: var(--border);
+  }
+
+  /* ── Effort table ── */
+  .effort-grid {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 16px 0 32px;
+    box-shadow: var(--shadow);
+  }
+  .effort-row {
+    display: grid;
+    grid-template-columns: 1fr 120px;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+  }
+  .effort-row:last-child { border-bottom: none; }
+  .effort-row.head { background: var(--surface); }
+  .effort-row.head div {
+    font-size: 11px; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--text-3);
+    padding: 10px 16px; border-bottom: 1px solid var(--border);
+  }
+  .effort-row:nth-child(even) div { background: var(--bg); }
+  .effort-row:nth-child(odd)  div { background: var(--surface); }
+  .effort-row.total div { background: var(--navy-mid) !important; color: white; font-weight: 700; }
+  .effort-row div { padding: 11px 16px; color: var(--text-2); }
+  .effort-row div:first-child { color: var(--text); }
+  .effort-time { font-variant-numeric: tabular-nums; color: var(--orange) !important; font-weight: 600; }
+
+  /* ── Code snippet ── */
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px 18px;
+    font-family: 'Cascadia Code','Fira Code','Consolas',monospace;
+    font-size: 12.5px;
+    color: var(--code-fg);
+    line-height: 1.75;
+    overflow-x: auto;
+    margin: 12px 0 20px;
+  }
+  .cm { color: var(--text-3); }
+  .kw { color: var(--orange); font-weight: 600; }
+  .st { color: var(--green); }
+
+  /* ── Env block ── */
+  .env-block {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--green);
+    border-radius: 6px;
+    padding: 16px 20px;
+    font-family: 'Cascadia Code','Fira Code','Consolas',monospace;
+    font-size: 13px;
+    color: var(--code-fg);
+    line-height: 1.8;
+    margin: 12px 0 24px;
+  }
+
+  /* ── Footer ── */
+  .doc-footer {
+    margin-top: 64px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-3);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .footer-logo {
+    font-weight: 800;
+    font-size: 13px;
+    color: var(--orange);
+    letter-spacing: .04em;
+  }
+</style>
+
+<div class="doc">
+
+  <!-- Header -->
+  <div class="doc-header">
+    <div class="doc-eyebrow">Sysco RFP AIQ · Architecture Decision</div>
+    <h1>Polling vs Webhooks<br>for Email Detection</h1>
+    <div class="doc-meta">Microsoft Graph API · Backend Strategy · July 2026</div>
+  </div>
+
+  <!-- Current setup -->
+  <h2>How It Works Today</h2>
+  <p>The backend runs a polling loop defined in <code>services/email_poller.py</code>. Every 15 seconds it wakes up and asks Microsoft Graph whether any new emails have arrived.</p>
+  <div class="flow-box">
+Server wakes up every 15 seconds<br>
+  → GET /v1.0/users/{userId}/mailFolders/Inbox/messages?$filter=isRead eq false<br>
+  → Processes any new emails found (match → bid, no match → unmatched)<br>
+  → Marks each email as read<br>
+  → asyncio.sleep(15)<br>
+  → Repeat forever
+  </div>
+
+  <!-- Comparison -->
+  <h2>Side-by-Side Comparison</h2>
+  <div class="compare-grid">
+
+    <div class="compare-card">
+      <div class="compare-card-head polling">⏱ Polling (Current)</div>
+      <div class="compare-card-body">
+        <h3>Advantages</h3>
+        <ul class="item-list">
+          <li><span class="chip pro">Pro</span>Works on localhost — no public URL needed</li>
+          <li><span class="chip pro">Pro</span>Auto catches up after server restart</li>
+          <li><span class="chip pro">Pro</span>No subscription lifecycle to manage</li>
+          <li><span class="chip pro">Pro</span>/api/email/poll-now for manual trigger</li>
+          <li><span class="chip pro">Pro</span>Resilient — downtime never loses emails</li>
+        </ul>
+        <h3 style="margin-top:20px">Disadvantages</h3>
+        <ul class="item-list">
+          <li><span class="chip con">Con</span>Up to 15 second delay per email</li>
+          <li><span class="chip con">Con</span>Burns API quota every 15s even when idle</li>
+          <li><span class="chip con">Con</span>Scales poorly with multiple mailboxes</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="compare-card">
+      <div class="compare-card-head webhooks">⚡ Webhooks (Graph Change Notifications)</div>
+      <div class="compare-card-body">
+        <h3>Advantages</h3>
+        <ul class="item-list">
+          <li><span class="chip pro">Pro</span>Real-time — email processed in &lt; 1 second</li>
+          <li><span class="chip pro">Pro</span>Zero wasted API calls — Graph calls you</li>
+          <li><span class="chip pro">Pro</span>Scales cleanly to any volume</li>
+          <li><span class="chip pro">Pro</span>Industry standard for production systems</li>
+        </ul>
+        <h3 style="margin-top:20px">Disadvantages</h3>
+        <ul class="item-list">
+          <li><span class="chip con">Con</span>Needs a public HTTPS URL (no localhost)</li>
+          <li><span class="chip con">Con</span>Subscription expires every 3 days — must renew</li>
+          <li><span class="chip con">Con</span>10-second validation handshake on registration</li>
+          <li><span class="chip con">Con</span>Still needs a catch-up poll as fallback</li>
+          <li><span class="chip con">Con</span>More complex setup (~4–5 hours of work)</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Verdict -->
+  <div class="verdict">
+    <div class="verdict-icon">⚖️</div>
+    <div>
+      <h3>Verdict</h3>
+      <p><strong style="color:white">Webhooks are better for production. Polling is better for development.</strong> For the current phase of Sysco RFP AIQ — still in active development with no public URL — polling is the right choice. A 15-second delay is acceptable for a bid management tool and polling requires zero additional infrastructure. Switch to webhooks once the app is deployed to a public HTTPS endpoint and real-time visibility becomes a user requirement.</p>
+    </div>
+  </div>
+
+  <!-- Cost section -->
+  <h2>Cost Comparison</h2>
+  <p>Microsoft Graph webhook subscriptions are <strong>free</strong> — they are part of the standard Microsoft 365 / Azure AD API with no additional billing. The only costs are infrastructure you would need anyway in production.</p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Item</th><th>Cost</th><th>Notes</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Graph API webhook subscriptions</td>
+          <td><span class="badge free">Free</span></td>
+          <td>Included in M365 / Azure AD — no separate billing</td>
+        </tr>
+        <tr>
+          <td>Graph API polling calls</td>
+          <td><span class="badge free">Free</span></td>
+          <td>But burns 5,760 quota calls/day even when idle</td>
+        </tr>
+        <tr>
+          <td>Public HTTPS server (production)</td>
+          <td><span class="badge paid">Hosting cost</span></td>
+          <td>Same server needed for any deployment — not webhook-specific</td>
+        </tr>
+        <tr>
+          <td>ngrok (local dev with webhooks)</td>
+          <td><span class="badge free">Free tier</span> / ~$8/mo paid</td>
+          <td>Only needed during local webhook testing; not required in production</td>
+        </tr>
+        <tr>
+          <td>API quota savings (webhooks vs polling)</td>
+          <td><span class="badge free">Saves quota</span></td>
+          <td>Webhooks use near-zero idle calls vs 5,760/day for polling</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p><strong>Bottom line:</strong> Webhooks cost less to run because they don't waste API quota. The only new cost is an ngrok tunnel if you want to test webhooks locally, and that's optional — just keep polling during development.</p>
+
+  <!-- Scenario table -->
+  <h2>When to Use Each</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Scenario</th>
+          <th>Best Choice</th>
+          <th>Reason</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Running locally on a laptop</td>
+          <td><span class="badge poll">Polling</span></td>
+          <td>No public URL available — webhooks physically cannot work</td>
+        </tr>
+        <tr>
+          <td>Development / testing</td>
+          <td><span class="badge poll">Polling</span></td>
+          <td>Simpler, no ngrok setup, instant /poll-now debugging</td>
+        </tr>
+        <tr>
+          <td>Proof of concept / demo</td>
+          <td><span class="badge poll">Polling</span></td>
+          <td>Already working, no extra setup needed</td>
+        </tr>
+        <tr>
+          <td>Deployed to Azure / AWS</td>
+          <td><span class="badge hook">Webhooks</span></td>
+          <td>Public URL available — webhooks eliminate delay and quota waste</td>
+        </tr>
+        <tr>
+          <td>Production with real users</td>
+          <td><span class="badge hook">Webhooks</span></td>
+          <td>15s delay becomes noticeable in live bid workflow; real-time matters</td>
+        </tr>
+        <tr>
+          <td>Multiple mailboxes</td>
+          <td><span class="badge hook">Webhooks</span></td>
+          <td>Polling costs multiply per mailbox; webhooks stay flat</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Decision flow -->
+  <h2>Decision Guide</h2>
+  <div class="flow">
+    <div class="flow-node question">Is the app deployed to a public HTTPS URL?</div>
+    <div style="display:flex;gap:48px;margin-top:0;">
+      <div>
+        <div class="vline"></div>
+        <div class="flow-connector no-path">▼ No</div>
+        <div class="flow-node no">Keep polling — current setup is correct</div>
+      </div>
+      <div>
+        <div class="vline"></div>
+        <div class="flow-connector yes-path">▼ Yes</div>
+        <div class="flow-node question">Do users need real-time email visibility?</div>
+        <div style="display:flex;gap:32px;">
+          <div>
+            <div class="vline"></div>
+            <div class="flow-connector no-path">▼ No</div>
+            <div class="flow-node no">Keep polling (15s acceptable)</div>
+          </div>
+          <div>
+            <div class="vline"></div>
+            <div class="flow-connector yes-path">▼ Yes</div>
+            <div class="flow-node yes">Switch to Webhooks + catch-up poll</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Architecture diagrams -->
+  <h2>Architecture: Before and After</h2>
+  <div class="arch-wrap">
+    <div class="arch-card">
+      <div class="arch-head current">Current — Polling</div>
+      <div class="arch-body">
+Sysco RFP AIQ<br>
+  email_poller.py<br>
+  (every 15 seconds)<br>
+<br>
+  <span class="arch-arrow">→</span> GET /messages<br>
+  <span class="arch-arrow">←</span> [list of emails]<br>
+  <span class="arch-arrow">→</span> mark as read<br>
+<span class="arch-dim">─────────────────</span><br>
+Microsoft Graph API
+      </div>
+    </div>
+    <div class="arch-card">
+      <div class="arch-head proposed">Proposed — Webhooks + Fallback</div>
+      <div class="arch-body">
+Sysco RFP AIQ<br>
+  webhooks.py (instant)<br>
+  <span class="arch-arrow">←</span> POST /api/webhooks/graph<br>
+  <span class="arch-dim">(Graph calls YOU)</span><br>
+<br>
+  email_poller.py (every 6h)<br>
+  <span class="arch-arrow">→</span> GET /messages (catch-up)<br>
+<span class="arch-dim">─────────────────</span><br>
+Microsoft Graph API
+      </div>
+    </div>
+  </div>
+
+  <!-- Files to change -->
+  <h2>Files to Change if Switching to Webhooks</h2>
+
+  <div class="file-table-wrap">
+    <div class="file-row head">
+      <span>File</span><span>Change</span><span>What to do</span>
+    </div>
+    <div class="file-row">
+      <div class="fc name">config.py</div>
+      <div class="fc"><span class="fc-badge add">Add</span></div>
+      <div class="fc">Add <code>webhook_url: str = ""</code> setting — the public HTTPS URL Graph will POST to</div>
+    </div>
+    <div class="file-row">
+      <div class="fc name">routers/webhooks.py</div>
+      <div class="fc"><span class="fc-badge new">New file</span></div>
+      <div class="fc">New FastAPI route that handles Graph validation handshake and incoming email notifications</div>
+    </div>
+    <div class="file-row">
+      <div class="fc name">services/email/msgraph_provider.py</div>
+      <div class="fc"><span class="fc-badge modify">Extend</span></div>
+      <div class="fc">Add 3 methods: <code>create_subscription()</code>, <code>renew_subscription()</code>, <code>delete_subscription()</code></div>
+    </div>
+    <div class="file-row">
+      <div class="fc name">main.py</div>
+      <div class="fc"><span class="fc-badge modify">Modify</span></div>
+      <div class="fc">Register webhook on startup, cancel on shutdown, add APScheduler renewal job (every 48h)</div>
+    </div>
+    <div class="file-row">
+      <div class="fc name">services/email_poller.py</div>
+      <div class="fc"><span class="fc-badge modify">Modify</span></div>
+      <div class="fc">Change <code>POLL_INTERVAL = 15</code> → <code>21600</code> (6 hours — catch-up only)</div>
+    </div>
+    <div class="file-row">
+      <div class="fc name">.env / .env.example</div>
+      <div class="fc"><span class="fc-badge add">Add</span></div>
+      <div class="fc">Add <code>WEBHOOK_URL=https://your-domain.com</code></div>
+    </div>
+  </div>
+
+  <!-- Key implementation details -->
+  <h2>Key Implementation Details</h2>
+
+  <h3>1 — Validation Handshake (routers/webhooks.py)</h3>
+  <p>When you register a webhook subscription, Graph immediately sends a test request with a <code>validationToken</code>. Your server must echo it back as plain text within 10 seconds — otherwise the subscription fails.</p>
+  <pre><span class="cm"># routers/webhooks.py — new file</span>
+<span class="kw">@router.post</span>(<span class="st">"/graph"</span>)
+<span class="kw">async def</span> graph_webhook(request, validationToken=Query(None)):
+    <span class="cm"># Step 1: Echo the token back — must happen within 10 seconds</span>
+    <span class="kw">if</span> validationToken:
+        <span class="kw">return</span> PlainTextResponse(validationToken, media_type=<span class="st">"text/plain"</span>)
+
+    <span class="cm"># Step 2: Real notification — process new email</span>
+    body = <span class="kw">await</span> request.json()
+    <span class="kw">for</span> notification <span class="kw">in</span> body.get(<span class="st">"value"</span>, []):
+        <span class="kw">await</span> _process_notification(notification)</pre>
+
+  <h3>2 — Subscription Registration (services/email/msgraph_provider.py)</h3>
+  <p>On startup, register your webhook URL with Microsoft. The subscription lasts a maximum of 3 days for mail resources — it must be renewed automatically.</p>
+  <pre><span class="cm"># New method in MsGraphEmailService</span>
+<span class="kw">async def</span> create_subscription(self, webhook_url: str) -> str:
+    token = <span class="kw">await</span> self._get_token()
+    payload = {
+        <span class="st">"changeType"</span>: <span class="st">"created"</span>,
+        <span class="st">"notificationUrl"</span>: f<span class="st">"{webhook_url}/api/webhooks/graph"</span>,
+        <span class="st">"resource"</span>: f<span class="st">"users/{self._user_id}/mailFolders/Inbox/messages"</span>,
+        <span class="st">"expirationDateTime"</span>: (now + timedelta(days=3)).isoformat()
+    }
+    <span class="cm"># POST to https://graph.microsoft.com/v1.0/subscriptions</span>
+    <span class="kw">return</span> response[<span class="st">"id"</span>]  <span class="cm"># store this for renewal</span></pre>
+
+  <h3>3 — Auto-Renewal (main.py)</h3>
+  <p>Add a renewal job to the existing APScheduler instance. Set it to renew every 48 hours so the 3-day subscription never lapses.</p>
+  <pre><span class="cm"># Add alongside the existing "auto_reminders" job in main.py</span>
+scheduler.add_job(
+    renew_graph_subscription,
+    <span class="st">"interval"</span>,
+    hours=<span class="st">48</span>,          <span class="cm"># renew every 2 days — subscription max is 3</span>
+    id=<span class="st">"graph_sub_renewal"</span>
+)</pre>
+
+  <!-- Environment variables -->
+  <h3>Environment Variables to Add</h3>
+  <div class="env-block">
+# Add to .env when deploying<br>
+WEBHOOK_URL=https://rfpaiq.sysco.com<br>
+<br>
+# For local development with ngrok tunnel:<br>
+# WEBHOOK_URL=https://abc123.ngrok.io
+  </div>
+
+  <!-- Effort estimate -->
+  <h2>Implementation Effort</h2>
+  <div class="effort-grid">
+    <div class="effort-row head"><div>Task</div><div>Estimate</div></div>
+    <div class="effort-row"><div>config.py — add WEBHOOK_URL</div><div class="effort-time">5 min</div></div>
+    <div class="effort-row"><div>routers/webhooks.py — new endpoint</div><div class="effort-time">1–2 hrs</div></div>
+    <div class="effort-row"><div>msgraph_provider.py — 3 new methods</div><div class="effort-time">1–2 hrs</div></div>
+    <div class="effort-row"><div>main.py — startup / shutdown / renewal</div><div class="effort-time">30 min</div></div>
+    <div class="effort-row"><div>email_poller.py — change interval to 6h</div><div class="effort-time">2 min</div></div>
+    <div class="effort-row"><div>Testing with ngrok locally</div><div class="effort-time">30 min</div></div>
+    <div class="effort-row total"><div>Total</div><div class="effort-time">~4–5 hrs</div></div>
+  </div>
+
+  <div class="doc-footer">
+    <span class="footer-logo">SYSCO RFP AIQ</span>
+    <span>Prepared July 2026 · Backend Architecture</span>
+  </div>
+
+</div>
